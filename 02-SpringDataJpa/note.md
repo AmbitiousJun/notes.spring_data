@@ -6,6 +6,8 @@
 
 ### 1.2 创建Java工程，引入依赖
 
+**Spring依赖必须和SpringDataJpa依赖适配，否则程序无法运行，可以查看SpringDataJpa依赖查看匹配的Spring版本号**
+
 - JPA相关依赖
 - Spring依赖
 - SpringDataJpa依赖
@@ -42,12 +44,17 @@
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
-            <version>5.2.1.RELEASE</version>
+            <version>5.3.6</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>5.3.6</version>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
-            <version>5.2.1.RELEASE</version>
+            <version>5.3.6</version>
         </dependency>
         <dependency>
             <groupId>org.aspectj</groupId>
@@ -110,7 +117,7 @@ extends JpaRepository<Article, Integer>, JpaSpecificationExecutor<Article> {
        xsi:schemaLocation="
        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-       http://www.springframework.org/schema/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd
+       http://www.springframework.org/schema/data/jpa http://www.springframework.org/schema/data/jpa/spring-jpa.xsd
 ">
     <!-- 包扫描 -->
     <context:component-scan base-package="com.ambitious.jpa_qs"/>
@@ -130,7 +137,9 @@ extends JpaRepository<Article, Integer>, JpaSpecificationExecutor<Article> {
         <!-- 实体类 -->
         <property name="packagesToScan" value="com.ambitious.jpa_qs.domain"/>
         <!-- 服务提供商 -->
-        <property name="persistenceProvider" value="org.hibernate.jpa.HibernatePersistenceProvider"/>
+        <property name="persistenceProvider">
+            <bean class="org.hibernate.jpa.HibernatePersistenceProvider"/>
+        </property>
         <!-- hibernate配置 -->
         <property name="jpaVendorAdapter">
             <bean class="org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter">
@@ -156,5 +165,57 @@ extends JpaRepository<Article, Integer>, JpaSpecificationExecutor<Article> {
 </beans>
 ```
 
+### 1.6 测试
 
+使用了SpringDataJpa之后，Dao的代码量可以明显减少
+
+在使用SpringDataJpa修改数据库中的记录之前，最好先做一次查询，然后再进行修改，防止误删原有数据
+
+```java
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration("classpath:applicationContext-jpa.xml")
+public class SpringDataJpaTest {
+
+    @Autowired
+    private ArticleDao articleDao;
+
+    // 增
+    @Test
+    public void testSave() {
+        Article article = new Article();
+        article.setAuthor("李四");
+        article.setTitle("这是李四写出来的标题");
+        article.setCreateTime(LocalDateTime.now());
+        Article res = articleDao.save(article);
+        System.out.println(res);
+    }
+
+    // 查
+    @Test
+    public void testFind() {
+        Optional<Article> optional = articleDao.findById(1);
+        System.out.println(optional.get());
+    }
+
+    // 改
+    @Test
+    public void testModify() {
+        // 将要修改的记录查出来
+        Optional<Article> optional = articleDao.findById(2);
+        if(optional.isPresent()) {
+            Article article = optional.get();
+            article.setAuthor("李四的妈妈");
+            article.setTitle("我是李四的妈妈，我修改了李四");
+            // SpringDataJpa的保存和修改方法是相同的
+            articleDao.save(article);
+        }
+    }
+
+    // 删
+    @Test
+    public void testDel() {
+        articleDao.deleteById(2);
+    }
+}
+```
 
