@@ -79,11 +79,11 @@ public class Article {
 
 #### 2.3.2 添加JPA注解，完成映射
 
-- @Entity：标注该类是一个实体类，<font color="red">必须添加，否则下面的注解无法生效</font>
+- @Entity：标注该类是一个实体类，<font style="color:red">必须添加，否则下面的注解无法生效</font>
 - @Table：指定该实体类在数据库中的表名
 - @Id： 指定主键子段
   - @GenerateValue：指定主键生成策略
-- @Column： 指定字段，当实体类属性名和表字段名一致时，可不用该注解
+- @Column： 指定字段名称，当实体类属性名和表字段名一致时，可不用该注解
 
 ```java
 @Data
