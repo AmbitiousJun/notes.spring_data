@@ -219,3 +219,84 @@ public class SpringDataJpaTest {
 }
 ```
 
+## 2. 查询扩展
+
+### 2.1 使用父接口的方法进行查询
+
+#### 2.1.1 根据主键进行查询
+
+```java
+@Test
+public void testById() {
+    // 1 直接传入主键
+    Optional<Article> optional = articleDao.findById(7);
+    System.out.println(optional.get());
+    // 2 根据多个主键进行查询
+    List<Integer> list = new ArrayList<>();
+    list.add(8);
+    list.add(9);
+    list.add(10);
+    List<Article> articles = articleDao.findAllById(list);
+    for (Article article : articles) {
+        System.out.println(article);
+    }
+}
+```
+
+#### 2.1.2 查询所有
+
+```java
+@Test
+public void testAll() {
+    List<Article> articles = articleDao.findAll();
+    for (Article article : articles) {
+        System.out.println(article);
+    }
+}
+```
+
+#### 2.1.3 查询所有并排序
+
+```java
+@Test
+public void findAllAndSort() {
+    Sort sort = Sort.by(Sort.Order.desc("aid"));
+    List<Article> articles = articleDao.findAll(sort);
+    System.out.println(articles);
+}
+```
+
+#### 2.1.4 查询所有并分页
+
+```java
+@Test
+public void findAllAndPage() {
+    // 分页中第0页为首页
+    Pageable pageable = PageRequest.of(1, 3);
+    Page<Article> articlePage = articleDao.findAll(pageable);
+    System.out.println("总记录数：" + articlePage.getTotalElements());
+    System.out.println("总页数：" + articlePage.getTotalPages());
+    System.out.println("当前页：" + articlePage.getNumber());
+    System.out.println("记录数：" + articlePage.getNumberOfElements());
+    System.out.println("查询出来的数据：" + articlePage.getContent());
+}
+```
+
+#### 2.1.5 查询所有并分页排序
+
+```java
+@Test
+public void findAllAndPageAndSort() {
+    Sort sort = Sort.by(Sort.Order.desc("aid"));
+    Pageable pageable = PageRequest
+        .of(2, 2)
+        .withSort(sort);
+    Page<Article> articlePage = articleDao.findAll(pageable);
+    System.out.println("总记录数：" + articlePage.getTotalElements());
+    System.out.println("总页数：" + articlePage.getTotalPages());
+    System.out.println("当前页：" + articlePage.getNumber());
+    System.out.println("记录数：" + articlePage.getNumberOfElements());
+    System.out.println("查询出来的数据：" + articlePage.getContent());
+}
+```
+
