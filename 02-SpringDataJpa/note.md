@@ -223,6 +223,8 @@ public class SpringDataJpaTest {
 
 ### 2.1 使用父接口的方法进行查询
 
+使用JpaRepository接口中已经定义好的接口进行查询
+
 #### 2.1.1 根据主键进行查询
 
 ```java
@@ -298,5 +300,101 @@ public void findAllAndPageAndSort() {
     System.out.println("记录数：" + articlePage.getNumberOfElements());
     System.out.println("查询出来的数据：" + articlePage.getContent());
 }
+```
+
+### 2.2 使用方法命名规则查询
+
+按照规定好的命名规则在Dao接口中自定义方法即可实现条件查询
+
+ ```java
+ public interface ArticleDao 
+ extends JpaRepository<Article, Integer>, JpaSpecificationExecutor<Article> {
+ 
+     /**
+      * 根据标题进行查询
+      * @param title 标题
+      * @return 文章集合
+      */
+     List<Article> findByTitle(String title);
+ 
+     /**
+      * 根据标题模糊查询
+      * @param title 标题
+      * @return 文章集合
+      */
+     List<Article> findByTitleLike(String title);
+ 
+     /**
+      * 根据标题和作者查询
+      * @param title 标题
+      * @param author 作者
+      * @return 文章集合
+      */
+     List<Article> findByTitleAndAuthor(String title, String author);
+ 
+     /**
+      * 查询某个id值以下所有文章
+      * @param aid 主键
+      * @return 文章集合
+      */
+     List<Article> findByAidLessThan(Integer aid);
+ 
+     /**
+      * 查询某个时间之后创建的记录
+      * @param time 时间
+      * @return 文章集合
+      */
+     List<Article> findByCreateTimeAfter(LocalDateTime time);
+ 
+     /**
+      * 查询某个区间id的记录
+      * @param collection id集合
+      * @return 文章集合
+      */
+     List<Article> findByAidIn(Collection<Integer> collection);
+ }
+ ```
+
+### 2.3 使用@Query注解 + JPQL进行查询
+
+JPQL的语法类似于SQL，只不过是面向实体类的，程序员无需关注表结构
+
+#### 2.3.1 基本参数绑定
+
+使用`:变量名`进行绑定，需要使用注解@param指定对应关系，与参数名无关
+
+```java
+@Query("from Article a where a.title = :title and a.author = :author")
+List<Article> findByCondition1(@Param("title") String title,@Param("author") String author);
+```
+
+#### 2.3.2 模糊查询
+
+```java
+@Query("from Article a where a.title like %:title%")
+List<Article> findByCondition2(@Param("title") String title);
+```
+
+#### 2.3.3 排序查询
+
+```java
+@Query("from Article a where a.title like %:title% order by a.aid desc")
+List<Article> findByCondition3(@Param("title") String title);
+```
+
+#### 2.3.4 分页查询
+
+```java
+@Query("from Article a where a.title like %:title%")
+Page<Article> findByCondition4(Pageable pageable, @Param("title") String title);
+```
+
+#### 2.3.5 实体查询
+
+使用`:#{#参数名.属性名}`表示实体中的某个属性值
+
+```java
+@Query("from Article a where a.title = :#{#article.title} and a.author = :#{#article.author}")
+List<Article> findByCondition5(@Param("article") Article article);
 ```
 
