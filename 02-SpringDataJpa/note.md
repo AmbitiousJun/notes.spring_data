@@ -219,6 +219,50 @@ public class SpringDataJpaTest {
 }
 ```
 
+### 1.7 在SpringBoot中使用JavaConfig的方式进行配置
+
+需要引入spring-boot-starter-data-jpa依赖
+
+```java
+@Configuration
+@EnableJpaRepositories(basePackages = {"com.ambitious.boot_jpa"})
+public class HibernateConfig {
+
+    @Bean
+    @ConfigurationProperties("spring.datasource")
+    public DataSource dataSource() {
+        return new DruidDataSource();
+    }
+
+    @Bean
+    public LocalContainerEntityManagerFactoryBean entityManagerFactory() {
+        LocalContainerEntityManagerFactoryBean factoryBean = new LocalContainerEntityManagerFactoryBean();
+        // 设置数据源
+        factoryBean.setDataSource(dataSource());
+        // 设置持久层提供商
+        HibernatePersistenceProvider provider = new HibernatePersistenceProvider();
+        factoryBean.setPersistenceProvider(provider);
+        // 设置参数
+        HibernateJpaVendorAdapter adapter = new HibernateJpaVendorAdapter();
+        adapter.setDatabase(Database.MYSQL);
+        adapter.setShowSql(true);
+        adapter.setGenerateDdl(true);
+        factoryBean.setJpaVendorAdapter(adapter);
+        factoryBean.setPackagesToScan("com.ambitious.boot_jpa.pojo");
+        return factoryBean;
+    }
+
+    @Bean
+    public JpaTransactionManager transactionManager() {
+        JpaTransactionManager manager = new JpaTransactionManager();
+        manager.setDataSource(dataSource());
+        return manager;
+    }
+}
+```
+
+
+
 ## 2. 查询扩展
 
 ### 2.1 使用父接口的方法进行查询
