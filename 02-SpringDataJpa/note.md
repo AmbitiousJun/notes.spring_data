@@ -442,3 +442,182 @@ Page<Article> findByCondition4(Pageable pageable, @Param("title") String title);
 List<Article> findByCondition5(@Param("article") Article article);
 ```
 
+### 2.4 使用Specifications进行动态查询
+
+通过匿名内部类的形式实现`Specification<T>`接口，在重写接口方法时进行条件的拼接
+
+```java
+@Test
+public void testFindAll() {
+    // 构造查询条件
+    String title = "";
+    String author = "张三";
+    // 使用Specifications接口进行动态查询
+    List<Article> articles = articleDao.findAll(new Specification<Article>() {
+        List<Predicate> list = new ArrayList<>();
+        /**
+             * @param root 可以拿到实体对象
+             * @param criteriaQuery 生成SQL语句
+             * @param criteriaBuilder 动态条件拼接
+             */
+        @Override
+        public Predicate toPredicate(Root<Article> root, CriteriaQuery<?> criteriaQuery, CriteriaBuilder criteriaBuilder) {
+            if(StringUtils.hasText(title)) {
+                Predicate predicate = criteriaBuilder.equal(root.get("title").as(String.class), title);
+                list.add(predicate);
+            }
+            if(StringUtils.hasText(author)) {
+                Predicate predicate = criteriaBuilder.equal(root.get("author").as(String.class), author);
+                list.add(predicate);
+            }
+            return criteriaBuilder.and(list.toArray(new Predicate[]{}));
+        }
+    });
+    for (Article article : articles) {
+        System.out.println(article);
+    }
+}
+```
+
+### 2.5 多表查询操作
+
+#### 2.5.1 一对一关系建立
+
+- Article类
+  - 声明ArticleData类属性，放弃主动维护关系(mappedBy)，并且设置级联保存操作(cascade)
+
+```java
+@Entity
+@Table(name = "article")
+@Data
+public class Article implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer aid;
+    @Column(name = "author")
+    private String author;
+    @Column(name = "createTime")
+    private LocalDateTime createTime;
+    @Column(name = "title")
+    private String title;
+    /**
+     * 与ArticleData是一对一关系
+     * 放弃主动维护，需要指定自己在对方中的属性名
+     * 指定级联保存，保存Article的时候同时保存ArticleData
+     */
+    @OneToOne(mappedBy = "article", cascade = CascadeType.PERSIST)
+    private ArticleData articleData;
+}
+```
+
+- ArticleData类
+  - 声明Article类属性，指定外键相关属性（外键字段名name， 引用子段名referencedColumnName， 是否添加唯一索引unique）
+
+```java
+@Data
+@Entity
+@Table(name = "article_data")
+public class ArticleData implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+    @Column(name = "content")
+    private String content;
+    /**
+     * 与Article是一对一的关系
+     * 在此类中主动维护此关系（声明外键）
+     */
+    @OneToOne
+    @JoinColumn(name = "article_id", referencedColumnName = "aid", unique = true)
+    private Article article;
+}
+```
+
+- 执行保存操作
+
+```java
+@Test
+public void testSaveOneToOne() {
+    // 创建Article
+    Article article = new Article();
+    article.setAuthor("嘻嘻哈哈");
+    article.setTitle("震惊！哈哈哈哈哈");
+    article.setCreateTime(LocalDateTime.now());
+    // 创建ArticleData
+    ArticleData articleData = new ArticleData();
+    articleData.setContent("这真是一篇好文章哈哈哈啊啊啊啊");
+    // 建立关系
+    article.setArticleData(articleData);
+    articleData.setArticle(article);
+    // 执行保存
+    articleDao.save(article);
+}
+```
+
+![](./assets/多表查询 - 一对一测试.png)
+
+#### 2.5.2 多对一关系建立
+
+- Article类
+  - 声明List<Comment>类型的属性，加上@OneToMany注解，声明放弃主动维护关系
+
+```java
+/**
+ * 与Comment是一对多关系
+ * 放弃主动维护
+ */
+@OneToMany(mappedBy = "article")
+private List<Comment> comments;
+```
+
+- Comment类
+  - 声明Article类型的属性，加上@ManyToOne注解，在加上@JoinColumn注解进行一个外键链接
+
+```java
+@Data
+@Entity
+@Table(name = "article_comment")
+public class Comment implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer cid;
+    @Column(name = "content")
+    private String content;
+    @ManyToOne
+    @JoinColumn(name = "aid", referencedColumnName = "aid")
+    private Article article;
+}
+```
+
+- 执行保存操作
+
+```java
+@Test
+public void testSaveOneToMore() {
+    // 查询一篇文章
+    Optional<Article> optional = articleDao.findById(12);
+    if(optional.isPresent()) {
+        // 获取文章实体
+        Article article = optional.get();
+        // 创建评论实体
+        Comment comment1 = new Comment();
+        comment1.setContent("真不错");
+        Comment comment2 = new Comment();
+        comment2.setContent("这篇文章写的真棒啊");
+        // 建立链接关系
+        comment1.setArticle(article);
+        comment2.setArticle(article);
+        List<Comment> list = new ArrayList<>();
+        list.add(comment1);
+        list.add(comment2);
+        article.setComments(list);
+        // 进行保存
+        commentDao.save(comment1);
+        commentDao.save(comment2);
+    }
+}
+```
+
