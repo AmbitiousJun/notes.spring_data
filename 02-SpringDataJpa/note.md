@@ -556,7 +556,7 @@ public void testSaveOneToOne() {
 }
 ```
 
-![](./assets/多表查询 - 一对一测试.png)
+![](./assets/多表查询-一对一测试.png)
 
 #### 2.5.2 多对一关系建立
 
