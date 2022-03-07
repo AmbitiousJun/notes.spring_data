@@ -621,3 +621,41 @@ public void testSaveOneToMore() {
 }
 ```
 
+#### 2.5.3 多对多关系建立
+
+与多对一关系类似
+
+- Article:
+
+```java
+/**
+ * 与Type是多对多关系
+ * 放弃主动维护
+ */
+@ManyToMany(mappedBy = "articles")
+private List<Type> types;
+```
+
+- type
+
+```java
+@Data
+@Entity
+@Table(name = "type")
+public class Type implements Serializable {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer cid;
+    @Column(name = "name")
+    private String name;
+    @ManyToMany
+    @JoinTable(
+            name = "article_type",
+            joinColumns = {@JoinColumn(name = "tid", referencedColumnName = "tid")},
+            inverseJoinColumns = {@JoinColumn(name = "aid", referencedColumnName = "aid")}
+    )
+    private List<Article> articles;
+}
+```
+
