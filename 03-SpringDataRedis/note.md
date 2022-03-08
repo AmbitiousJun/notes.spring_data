@@ -125,3 +125,115 @@ public void testSave() {
 
 ![](./assets/入门案例-运行结果2.png)
 
+## 2. 操作String类型
+
+使用**ValueOperations**接口的实现，完成String类型的操作
+
+### 2.1 设置一个String类型的值
+
+```java
+void set(K key, V value);
+```
+
+```java
+@Test
+public void testSave() {
+    operations.set("name1", "Ambitious1");
+}
+```
+
+### 2.2 设置一个String类型的值，并指定有效时间
+
+- 设定时间到达之后这个值会自动消失
+- `long timeout`：过期时间（数值）
+- `TimeUnit unit`：过期时间（单位）
+
+```java
+void set(K key, V value, long timeout, TimeUnit unit);
+```
+
+```java
+@Test
+public void testSave1() {
+    // 设置数据10秒后过期
+    operations.set("name2", "Ambitious2", 10, TimeUnit.SECONDS);
+}
+```
+
+### 2.3 当一个key存在时，不执行操作；反之进行存储
+
+```java
+Boolean setIfAbsent(K key, V value);
+```
+
+```java
+@Test
+public void testSave2() {
+    Boolean isSuccess = operations.setIfAbsent("name2", "ambitious2");
+    System.out.println(isSuccess);
+}
+```
+
+### 2.4 当一个key存在时，往其值末尾进行补充；反之执行保存操作
+
+返回的整型值是执行完成之后，当前key对应的value有多少个字符
+
+```java
+Integer append(K key, String value);
+```
+
+### 2.5 一次性存储多个值
+
+```java
+void multiSet(Map<? extends K, ? extends V> map);
+```
+
+```java
+@Test
+public void testSave4() {
+    Map<String, String> map = new HashMap<>();
+    map.put("name4", "嘻嘻嘻");
+    map.put("name5", "啊啊啊");
+    map.put("name6", "呵呵呵");
+    operations.multiSet(map);
+}
+```
+
+### 2.6 String类型的其他操作
+
+```java
+@Test
+public void testOther() {
+    // 获取某个key对应的值
+    String name = operations.get("name1");
+    System.out.println(name);
+
+    // 获取某个key的值，并截取子串，范围是闭区间[start, end]
+    String name1 = operations.get("name1", 5, 7);
+    System.out.println(name1);
+
+    // 批量获取值
+    List<String> keys = new ArrayList<>(Arrays.asList("name2", "name3", "name4"));
+    List<String> values = operations.multiGet(keys);
+    for (String value : values) {
+        System.out.println(value);
+    }
+
+    // 自增
+    operations.set("age", "18");
+    // 自增1
+    operations.increment("age");
+    System.out.println(operations.get("age"));
+    // 自定义自增大小
+    operations.increment("age", 20);
+    System.out.println(operations.get("age"));
+    // 自减
+    operations.decrement("age");
+    System.out.println(operations.get("age"));
+
+    // 删除
+    redisTemplate.delete("age");
+    System.out.println(operations.get("age"));
+}
+```
+
