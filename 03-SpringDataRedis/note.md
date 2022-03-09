@@ -237,3 +237,114 @@ public void testOther() {
 }
 ```
 
+## 3. 操作Hash类型
+
+Hash类型用来存储**对象**数据，在使用前需要同样需要**指定序列化器**
+
+```java
+@Bean
+public RedisTemplate<String, Object> redisTemplate() {
+    RedisTemplate<String, Object> template = new RedisTemplate<>();
+    template.setConnectionFactory(connectionFactory);
+    template.setKeySerializer(new StringRedisSerializer());
+    template.setValueSerializer(jackson2JsonRedisSerializer());
+    // 设置Hash序列化器
+    template.setHashKeySerializer(new StringRedisSerializer());
+    template.setHashValueSerializer(jackson2JsonRedisSerializer());
+    return template;
+}
+
+@Bean
+public Jackson2JsonRedisSerializer jackson2JsonRedisSerializer() {
+    Jackson2JsonRedisSerializer<Object> serializer = new Jackson2JsonRedisSerializer<>(Object.class);
+    ObjectMapper mapper = new ObjectMapper();
+    serializer.setObjectMapper(mapper);
+    return serializer;
+}
+```
+
+要保存的实体类必须实现Serializable接口
+
+如果实体类中使用到了Java8提供的时间类型（LocalDate, LocalTime, LocalDateTime），则需要提供相应的序列化器和反序列化器，具体步骤如下：
+
+引入jackson-datatype-jsr310依赖
+
+```xml
+<!-- 支持Java8的时间对象序列化 -->
+<dependency>
+    <groupId>com.fasterxml.jackson.datatype</groupId>
+    <artifactId>jackson-datatype-jsr310</artifactId>
+</dependency>
+```
+
+在相应的属性上方添加注解
+
+```java
+@JsonSerialize(using = LocalDateTimeSerializer.class)
+@JsonDeserialize(using = LocalDateTimeDeserializer.class)
+private LocalDateTime createTime;
+```
+
+### 3.1 保存数据
+
+```java
+@Test
+public void testPut() {
+    // 保存一个对象
+    Article article = new Article();
+    article.setAuthor("Ambitious");
+    article.setTitle("这是一篇好文章");
+    article.setCreateTime(LocalDateTime.now());
+    operations.put("ARTICLE_KEY", "1", article);
+    // 保存多个对象 operations.putAll(key, map<hashKey, object>)
+    // 当不存在key时才进行保存 operations.putIfAbsent(key, hashKey, value)
+}
+```
+
+由于反序列化时有的时候无法成功将读取到的数据转化成想要的实体对象
+
+所以更好的方法是，在存储之前，先将实体对象转换成JSON字符串再进行保存
+
+```java
+@Test
+public void testPut() throws JsonProcessingException {
+    // 保存一个对象
+    Article article = new Article();
+    article.setAuthor("Ambitious");
+    article.setTitle("这是一篇好文章");
+    article.setCreateTime(LocalDateTime.now());
+    ObjectMapper mapper = new ObjectMapper();
+    String json = mapper.writeValueAsString(article);
+    operations.put("ARTICLE", "1", json);
+    // 保存多个对象 operations.putAll(key, map<hashKey, object>)
+    // 当不存在key时才进行保存 operations.putIfAbsent(key, hashKey, value)
+}
+```
+
+### 3.2 获取数据
+
+```java
+@Test
+public void testGet() throws JsonProcessingException {
+    // 获取某个对象的值
+    String json = (String) operations.get("ARTICLE", "1");
+    ObjectMapper mapper = new ObjectMapper();
+    Article article = mapper.readValue(json, Article.class);
+    System.out.println(article);
+    // 获取某个Hash中的所有Key值
+    Set<String> keys = operations.keys("ARTICLE");
+    for (String key : keys) {
+        System.out.println(key);
+    }
+    // 获取某个Hash中的所有Value
+    List<Object> articles = operations.values("ARTICLE");
+    for (Object o : articles) {
+        Article article1 = mapper.readValue((String) o, Article.class);
+        System.out.println(article1);
+    }
+    // 获取Hash中的所有KV， Map形式
+    Map<String, Object> map = operations.entries("ARTICLE");
+    System.out.println(map);
+}
+```
+
